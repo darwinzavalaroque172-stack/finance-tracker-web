@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Tracker</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.15.0/firebase-app-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.15.0/firebase-auth-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/9.15.0/firebase-firestore-compat.js"></script>
+    <style>
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2980b9;
+            --danger-color: #e74c3c;
+            --success-color: #2ecc71;
+            --warning-color: #f39c12;
+            --text-color: #333;
+            --bg-color: #f5f5f5;
+            --card-color: #fff;
+            --border-color: #ddd;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Auth Screens */
+        .auth-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .auth-box {
+            background-color: var(--card-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .auth-logo {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .auth-logo i {
+            font-size: 48px;
+            color: var(--primary-color);
+        }
+
+        .auth-title {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: 500;
+            text-align: center;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            text-decoration: none;
+        }
+
+        .btn-block {
+            display: block;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--secondary-color);
+        }
+
+        .btn-link {
+            background: none;
+            color: var(--primary-color);
+            padding: 5px;
+            font-weight: 500;
+        }
+
+        .btn-link:hover {
+            text-decoration: underline;
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        /* Header */
+        .header {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 15px 0;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .logo i {
+            margin-right: 8px;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 5px 10px;
+        }
+
+        .nav-btn:hover {
+            text-decoration: underline;
+        }
+
+        /* Main Content */
+        .main {
+            flex: 1;
+            padding: 20px 0;
+        }
+
+        /* Dashboard */
+        .dashboard {
+            display: none;
+        }
+
+        .card {
+            background-color: var(--card-color);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* Balance Card */
+        .balance-card {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .balance-title {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .balance-value {
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .balance-positive {
+            color: var(--success-color);
+        }
+
+        .balance-negative {
+            color: var(--danger-color);
+        }
+
+        .balance-details {
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .balance-detail {
+            flex: 1;
+        }
+
+        .balance-detail-title {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .balance-detail-value {
+            font-weight: 600;
+        }
+
+        .income-value {
+            color: var(--success-color);
+        }
+
+        .expense-value {
+            color: var(--danger-color);
+        }
+
+        /* Transaction List */
+        .transaction-list {
+            list-style: none;
+        }
+
+        .transaction-item {
+            padding: 15px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .transaction-item:last-child {
+            border-bottom: none;
+        }
+
+        .transaction-item:hover {
+            background-color: #f9f9f9;
+        }
+
+        .transaction-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .icon-expense {
+            background-color: var(--danger-color);
+            color: white;
+        }
+
+        .icon-income {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .transaction-info {
+            flex: 1;
+        }
+
+        .transaction-title {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .transaction-subtitle {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .transaction-amount {
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .amount-expense {
+            color: var(--danger-color);
+        }
+
+        .amount-income {
+            color: var(--success-color);
+        }
+
+        /* Charts */
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        /* Add Transaction */
+        .add-transaction-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            border: none;
+            font-size: 24px;
+        }
+
+        .add-transaction-btn:hover {
+            background-color: var(--secondary-color);
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background-color: var(--card-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid var(--border-color);
+            text-align: right;
+        }
+
+        /* Form elements */
+        .form-check {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .form-check input {
+            margin-right: 10px;
+        }
+
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -10px;
+        }
+
+        .form-col {
+            flex: 1;
+            padding: 0 10px;
+            min-width: 200px;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-weight: 500;
+        }
+
+        .tab.active {
+            border-bottom-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Loading */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid var(--primary-color);
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Media queries */
+        @media (max-width: 768px) {
+            .balance-details {
+                flex-direction: column;
+            }
+            
+            .balance-detail {
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+	<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyB15KsRQ7yXGW4WTutURUMYRLHfRslpsM8",
+    authDomain: "finance-tracker-duduu.firebaseapp.com",
+    projectId: "finance-tracker-duduu",
+    storageBucket: "finance-tracker-duduu.firebasestorage.app",
+    messagingSenderId: "708974856746",
+    appId: "1:708974856746:web:04a4e79d27fdb17ddd1153",
+    measurementId: "G-X9VPXBCGFQ"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
+    <!-- Auth Screens -->
+    <div id="auth-container" class="auth-container">
+        <div class="auth-box">
+            <div class="auth-logo">
+                <i class="fas fa-wallet"></i>
+            </div>
+            <h1 class="auth-title">Finance Tracker</h1>
+            <div id="auth-content">
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="email">Email:</label>
+                        <input type="email" id="email" class="form-control" placeholder="Inserisci la tua email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password:</label>
+                        <input type="password" id="password" class="form-control" placeholder="Inserisci la tua password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Accedi</button>
+                    <div class="auth-footer">
+                        <button type="button" id="switch-to-signup" class="btn btn-link">Non hai un account? Registrati</button>
+                    </div>
+                </form>
+                <form id="signup-form" style="display: none;">
+                    <div class="form-group">
+                        <label for="signup-email">Email:</label>
+                        <input type="email" id="signup-email" class="form-control" placeholder="Inserisci la tua email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-password">Password:</label>
+                        <input type="password" id="signup-password" class="form-control" placeholder="Inserisci una password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm-password">Conferma Password:</label>
+                        <input type="password" id="confirm-password" class="form-control" placeholder="Conferma la password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Registrati</button>
+                    <div class="auth-footer">
+                        <button type="button" id="switch-to-login" class="btn btn-link">Hai già un account? Accedi</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app" style="display: none;">
+        <!-- Header -->
+        <header class="header">
+            <div class="container header-container">
+                <div class="logo">
+                    <i class="fas fa-wallet"></i> Finance Tracker
+                </div>
+                <button id="logout-btn" class="nav-btn">
+                    <i class="fas fa-sign-out-alt"></i> Esci
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <div class="container">
+                <!-- Tabs -->
+                <div class="tabs">
+                    <div class="tab active" data-tab="transactions">Transazioni</div>
+                    <div class="tab" data-tab="statistics">Statistiche</div>
+                    <div class="tab" data-tab="settings">Impostazioni</div>
+                </div>
+
+                <!-- Transactions Tab -->
+                <div id="transactions-tab" class="tab-content active">
+                    <!-- Balance Summary -->
+                    <div class="card">
+                        <div class="balance-card">
+                            <div class="balance-title">Saldo attuale</div>
+                            <div id="balance-value" class="balance-value">€ 0.00</div>
+                            <div class="balance-details">
+                                <div class="balance-detail">
+                                    <div class="balance-detail-title">Entrate</div>
+                                    <div id="income-value" class="balance-detail-value income-value">€ 0.00</div>
+                                </div>
+                                <div class="balance-detail">
+                                    <div class="balance-detail-title">Uscite</div>
+                                    <div id="expense-value" class="balance-detail-value expense-value">€ 0.00</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Transaction List -->
+                    <div class="card">
+                        <div class="card-header">
+                            Transazioni recenti
+                        </div>
+                        <div id="transactions-container" class="card-body">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                            </div>
+                            <ul id="transaction-list" class="transaction-list" style="display: none;"></ul>
+                            <div id="no-transactions" style="display: none; text-align: center; padding: 20px;">
+                                Non ci sono transazioni. Aggiungi la tua prima transazione!
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistics Tab -->
+                <div id="statistics-tab" class="tab-content">
+                    <!-- Category Chart -->
+                    <div class="card">
+                        <div class="card-header">
+                            Spese per categoria
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="category-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Monthly Chart -->
+                    <div class="card">
+                        <div class="card-header">
+                            Andamento mensile
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="monthly-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Tab -->
+                <div id="settings-tab" class="tab-content">
+                    <div class="card">
+                        <div class="card-header">
+                            Impostazioni account
+                        </div>
+                        <div class="card-body">
+                            <div class="form-group">
+                                <label for="user-email">Email:</label>
+                                <input type="email" id="user-email" class="form-control" readonly>
+                            </div>
+                            <button id="change-password-btn" class="btn btn-primary">Cambia password</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Add Transaction Button -->
+        <button id="add-transaction-btn" class="add-transaction-btn">
+            <i class="fas fa-plus"></i>
+        </button>
+    </div>
+
+    <!-- Add Transaction Modal -->
+    <div id="add-transaction-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="transaction-modal-title">Aggiungi Transazione</h3>
+                <button class="modal-close" id="close-transaction-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="transaction-form">
+                    <input type="hidden" id="transaction-id">
+                    <div class="form-group">
+                        <label for="transaction-title">Titolo:</label>
+                        <input type="text" id="transaction-title" class="form-control" placeholder="Descrizione della transazione" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="transaction-amount">Importo:</label>
+                        <input type="number" id="transaction-amount" class="form-control" placeholder="0.00" step="0.01" min="0.01" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="transaction-date">Data:</label>
+                        <input type="date" id="transaction-date" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="transaction-category">Categoria:</label>
+                        <select id="transaction-category" class="form-control" required>
+                            <option value="Cibo">Cibo</option>
+                            <option value="Trasporti">Trasporti</option>
+                            <option value="Bollette">Bollette</option>
+                            <option value="Intrattenimento">Intrattenimento</option>
+                            <option value="Salute">Salute</option>
+                            <option value="Shopping">Shopping</option>
+                            <option value="Altro">Altro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Tipo:</label>
+                        <div class="form-check">
+                            <input type="radio" id="type-expense" name="transaction-type" value="expense" checked>
+                            <label for="type-expense">Spesa</label>
+                        </div>
+                        <div class="form-check">
+                            <input type="radio" id="type-income" name="transaction-type" value="income">
+                            <label for="type-income">Entrata</label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="save-transaction-btn">Salva</button>
+                <button type="button" class="btn btn-link" id="delete-transaction-btn" style="display: none;">Elimina</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="change-password-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Cambia Password</h3>
+                <button class="modal-close" id="close-password-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="change-password-form">
+                    <div class="form-group">
+                        <label for="current-password">Password attuale:</label>
+                        <input type="password" id="current-password" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-password">Nuova password:</label>
+                        <input type="password" id="new-password" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm-new-password">Conferma nuova password:</label>
+                        <input type="password" id="confirm-new-password" class="form-control" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" id="update-password-btn">Aggiorna</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        
+        // UI Elements
+        const authContainer = document.getElementById('auth-container');
+        const app = document.getElementById('app');
+        const loginForm = document.getElementById('login-form');
+        const signupForm = document.getElementById('signup-form');
+        const switchToSignup = document.getElementById('switch-to-signup');
+        const switchToLogin = document.getElementById('switch-to-login');
+        const logoutBtn = document.getElementById('logout-btn');
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        const addTransactionBtn = document.getElementById('add-transaction-btn');
+        const addTransactionModal = document.getElementById('add-transaction-modal');
+        const closeTransactionModal = document.getElementById('close-transaction-modal');
+        const transactionForm = document.getElementById('transaction-form');
+        const saveTransactionBtn = document.getElementById('save-transaction-btn');
+        const deleteTransactionBtn = document.getElementById('delete-transaction-btn');
+        const changePasswordBtn = document.getElementById('change-password-btn');
+        const changePasswordModal = document.getElementById('change-password-modal');
+        const closePasswordModal = document.getElementById('close-password-modal');
+        const updatePasswordBtn = document.getElementById('update-password-btn');
+        const balanceValue = document.getElementById('balance-value');
+        const incomeValue = document.getElementById('income-value');
+        const expenseValue = document.getElementById('expense-value');
+        const transactionList = document.getElementById('transaction-list');
+        const transactionsContainer = document.getElementById('transactions-container');
+        const noTransactions = document.getElementById('no-transactions');
+        const userEmail = document.getElementById('user-email');
+        const transactionModalTitle = document.getElementById('transaction-modal-title');
+
+        // Chart.js instances
+        let categoryChart = null;
+        let monthlyChart = null;
+
+        // Transaction modal state
+        let isEditMode = false;
+
+        // Global state
+        let currentUser = null;
+        let transactions = [];
+
+        // Authentication state listener
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                currentUser = user;
+                authContainer.style.display = 'none';
+                app.style.display = 'block';
+                userEmail.value = user.email;
+                fetchTransactions();
+            } else {
+                currentUser = null;
+                authContainer.style.display = 'flex';
+                app.style.display = 'none';
+                loginForm.reset();
+                signupForm.reset();
+                switchToLogin.click();
+            }
+        });
+
+        // Switch between login and signup forms
+        switchToSignup.addEventListener('click', () => {
+            loginForm.style.display = 'none';
+            signupForm.style.display = 'block';
+        });
+
+        switchToLogin.addEventListener('click', () => {
+            signupForm.style.display = 'none';
+            loginForm.style.display = 'block';
+        });
+
+        // Login form submission
+        loginForm.addEventListener('submit', e => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            auth.signInWithEmailAndPassword(email, password)
+                .catch(error => {
+                    alert(`Errore di accesso: ${error.message}`);
+                });
+        });
+
+        // Signup form submission
+        signupForm.addEventListener('submit', e => {
+            e.preventDefault();
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+
+            if (password !== confirmPassword) {
+                alert('Le password non corrispondono');
+                return;
+            }
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .catch(error => {
+                    alert(`Errore di registrazione: ${error.message}`);
+                });
+        });
+
+        // Logout
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut();
+        });
+
+        // Tab navigation
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all tabs
+                tabs.forEach(t => t.classList.remove('active'));
+                // Add active class to current tab
+                tab.classList.add('active');
+                
+                // Hide all tab content
+                tabContents.forEach(content => content.classList.remove('active'));
+                // Show current tab content
+                const tabId = tab.getAttribute('data-tab');
+                document.getElementById(`${tabId}-tab`).classList.add('active');
+                
+                // If statistics tab is active, refresh charts
+                if (tabId === 'statistics') {
+                    renderCharts();
+                }
+            });
+        });
+
+        // Add transaction modal
+        addTransactionBtn.addEventListener('click', () => {
+            resetTransactionForm();
+            isEditMode = false;
+            transactionModalTitle.textContent = 'Aggiungi Transazione';
+            deleteTransactionBtn.style.display = 'none';
+            addTransactionModal.style.display = 'flex';
+        });
+
+        closeTransactionModal.addEventListener('click', () => {
+            addTransactionModal.style.display = 'none';
+        });
+
+        // Change password modal
+        changePasswordBtn.addEventListener('click', () => {
+            document.getElementById('change-password-form').reset();
+            changePasswordModal.style.display = 'flex';
+        });
+
+        closePasswordModal.addEventListener('click', () => {
+            changePasswordModal.style.display = 'none';
+        });
+
+        // Handle click outside of modals
+        window.addEventListener('click', (e) => {
+            if (e.target === addTransactionModal) {
+                addTransactionModal.style.display = 'none';
+            }
+            if (e.target === changePasswordModal)
